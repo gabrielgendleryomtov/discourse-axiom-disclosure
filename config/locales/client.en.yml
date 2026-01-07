@@ -3,7 +3,21 @@ en:
     axiom_disclosure:
       flag_title: "Flag disclosure"
       confirm_message: "Flag this post as a disclosure? This will hide the post and may temporarily restrict the user’s posting, depending on safeguarding settings."
-      success_title: "Disclosure recorded"
-      success_message: "The post has been hidden and the disclosure has been exported."
+
       error_title: "Disclosure failed"
       error_message: "Something went wrong while recording the disclosure. Please check server logs."
+
+      success_title: "Disclosure recorded"
+      success_message_intro: "The disclosure has been recorded. Actions taken:"
+
+      action_post_hidden: "Post hidden"
+      action_post_already_hidden: "Post was already hidden (no change)"
+
+      action_user_silenced: "User silenced temporarily"
+      action_user_not_silenced: "User not silenced"
+
+      action_export_saved: "Exported record saved (%{filename})"
+      action_export_not_saved: "Export not saved"
+
+      action_notified: "External notification sent"
+      action_not_notified: "External notification not sent"
