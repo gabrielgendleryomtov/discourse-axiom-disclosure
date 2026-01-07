@@ -10,10 +10,14 @@ module ::AxiomDisclosure
       Rails.logger.warn("[axiom-disclosure] flag hit; post_id=#{params[:post_id]} user=#{current_user&.username}")
 
       post_id = params.require(:post_id).to_i
+      observation = params[:observation].to_s
+      
+      Rails.logger.warn("[axiom-disclosure] Controller observation is #{observation}")
+
       post = Post.find_by(id: post_id)
       raise Discourse::NotFound unless post
 
-      result = AxiomDisclosure::DisclosureService.flag_disclosure(post, current_user)
+      result = AxiomDisclosure::DisclosureService.flag_disclosure(post, current_user, observation: observation)
 
       render_json_dump(result.merge(ok: true))
     rescue => e

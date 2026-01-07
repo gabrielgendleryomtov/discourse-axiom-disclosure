@@ -7,13 +7,16 @@ module ::AxiomDisclosure
   class DisclosureService
     class << self
       # Main entry point: called from controller
-      def flag_disclosure(post, actor)
+      def flag_disclosure(post, actor, observation: "")
         raise Discourse::InvalidAccess, "staff only" unless actor&.staff?
         raise ArgumentError, "post required" if post.blank?
 
         user = post.user
 
-        payload = build_payload(post, user, actor)
+        observation = observation.to_s.strip
+        observation = observation[0, 10_000]
+
+        payload = build_payload(post, user, actor, observation: observation)
 
         hidden = hide_post(post, actor)
         silenced = silence_user(user, actor)
@@ -38,10 +41,11 @@ module ::AxiomDisclosure
       # Payload and exporting
       # -----------------------------
 
-      def build_payload(post, user, actor)
+      def build_payload(post, user, actor, observation: "")
         {
           created_at: Time.zone.now.iso8601,
           plugin: "axiom-disclosure",
+          observation: observation,
           actor: {
             id: actor.id,
             username: actor.username,
@@ -62,7 +66,6 @@ module ::AxiomDisclosure
             created_at: post.created_at&.iso8601,
             url: post.full_url
           }
-          # TODO (vNext): include staff observation text from confirm dialog
         }
       end
 

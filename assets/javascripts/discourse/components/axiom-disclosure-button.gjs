@@ -7,6 +7,8 @@ import { popupAjaxError } from "discourse/lib/ajax-error";
 import I18n from "I18n";
 import { htmlSafe } from "@ember/template";
 
+import AxiomDisclosureModal from "./axiom-disclosure-modal";
+
 function escapeHtml(str) {
   return (str || "").replace(/[&<>"']/g, (c) => {
     switch (c) {
@@ -18,6 +20,22 @@ function escapeHtml(str) {
       default: return c;
     }
   });
+}
+
+function buildConfirmHtml() {
+  const intro = I18n.t("axiom_disclosure.confirm_message");
+  const label = I18n.t("axiom_disclosure.observation_label");
+  const placeholder = I18n.t("axiom_disclosure.observation_placeholder");
+
+  const html = `
+    <p>${intro}</p>
+    <p><strong>${label}</strong></p>
+    <textarea id="axiom-disclosure-observation"
+              style="width: 100%; min-height: 120px; resize: vertical;"
+              placeholder="${placeholder}"></textarea>
+  `;
+
+  return htmlSafe(html);
 }
 
 function buildSuccessMessageHtml(result) {
@@ -62,20 +80,22 @@ function buildSuccessMessageHtml(result) {
 
 export default class AxiomDisclosureButton extends Component {
   @service dialog;
+  @service modal;
 
   @action
   async flagDisclosure() {
     const post = this.args?.post;
     if (!post?.id) return;
 
-    const confirmMessage = I18n.t("axiom_disclosure.confirm_message");
-    const confirmed = await this.dialog.confirm({ message: confirmMessage });
-    if (!confirmed) return;
+    const response = await this.modal.show(AxiomDisclosureModal);
+    if (!response?.confirmed) return;
+
+    const observation = response.observation || "";
 
     try {
       const result = await ajax("/axiom-disclosure/flag", {
         type: "POST",
-        data: { post_id: post.id },
+        data: { post_id: post.id, observation },
       });
 
       const html = buildSuccessMessageHtml(result);
@@ -87,6 +107,7 @@ export default class AxiomDisclosureButton extends Component {
       popupAjaxError(e);
     }
   }
+
 
   <template>
     <DButton
