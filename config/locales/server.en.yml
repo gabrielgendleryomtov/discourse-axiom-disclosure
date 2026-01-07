@@ -1,0 +1,5 @@
+en:
+  site_settings:
+    axiom_disclosure_enabled: "Enable Axiom disclosure flagging"
+    axiom_disclosure_silence_duration_hours: "Silence duration (hours) after flagging a disclosure (set to 0 to disable silencing)"
+    axiom_disclosure_export_path: "Export path for disclosure logs (must be writable inside container)"

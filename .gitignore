@@ -1,0 +1,14 @@
+# Ruby / Rails
+*.log
+*.pid
+*.swp
+.DS_Store
+
+# Discourse development artifacts
+tmp/
+log/
+node_modules/
+
+# Editor
+.vscode/
+.idea/

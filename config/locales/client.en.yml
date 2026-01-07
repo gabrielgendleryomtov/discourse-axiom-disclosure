@@ -1,0 +1,10 @@
+en:
+  js:
+    axiom_disclosure:
+      flag_title: "Flag disclosure"
+      flag_label: "Disclosure"
+      confirm_message: "Flag this post as a disclosure? This will hide the post and may temporarily restrict the user’s posting, depending on safeguarding settings."
+      success_hidden: "Disclosure flagged. The post has been hidden."
+      success_silenced: "The user has been silenced temporarily."
+      success_exported: "A record has been exported."
+      success_notified_stub: "(External alerting not yet enabled.)"

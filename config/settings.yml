@@ -1,0 +1,16 @@
+plugins:
+  axiom_disclosure_enabled:
+    default: false
+    client: true
+
+  axiom_disclosure_export_path:
+    default: "/shared/private/axiom-disclosures"
+    type: string
+    client: false
+
+  axiom_disclosure_silence_duration_hours:
+    default: 24
+    min: 0
+    max: 720
+    type: integer
+    client: false
