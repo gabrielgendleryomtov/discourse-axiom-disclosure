@@ -18,7 +18,7 @@ module ::AxiomDisclosure
 
         payload = build_payload(post, user, actor, observation: observation)
 
-        hidden = hide_post(post, actor)
+        hidden = hide_post(post)
         silenced = silence_user(user, actor)
 
         exported_path = export_payload(payload)
@@ -97,24 +97,15 @@ module ::AxiomDisclosure
       # Post hiding
       # -----------------------------
 
-      def hide_post(post, actor)
-        return true if post.hidden?
+      def hide_post(post)
+        Rails.logger.warn("[axiom-disclosure] hide_post start post_id=#{post.id} hidden?=#{post.hidden?}")
+        return false if post.hidden?
 
         reason = SiteSetting.axiom_disclosure_silence_reason.to_s
 
-        # Create a staff flag for audit/review purposes (does not guarantee hiding)
-        PostActionCreator.create(
-          actor,
-          post,
-          :inappropriate,
-          message: reason,
-          reason: reason,
-          context: "axiom-disclosure",
-          silent: true
-        )
-
         # Explicitly hide the post (guaranteed)
         hide_action_type_id = PostActionType.types[:inappropriate]
+
         post.hide!(hide_action_type_id, reason)
 
         post.reload.hidden?
@@ -135,6 +126,8 @@ module ::AxiomDisclosure
 
         silenced_till = hours.hours.from_now
         reason = SiteSetting.axiom_disclosure_silence_reason.to_s
+
+        actor = User.find(actor.id)
 
         UserSilencer.silence(
           user,

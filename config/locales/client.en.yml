@@ -2,6 +2,7 @@ en:
   js:
     axiom_disclosure:
       confirm_title: "Flag disclosure"
+      flag_title: "Flag disclosure"
 
       observation_label: "Optional observation (saved to exported record only)"
       observation_placeholder: "Write any relevant observation here (e.g. context, why you flagged it, immediate next steps)."
