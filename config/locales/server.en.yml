@@ -1,5 +1,6 @@
 en:
   site_settings:
-    axiom_disclosure_enabled: "Enable Axiom disclosure flagging"
-    axiom_disclosure_silence_duration_hours: "Silence duration (hours) after flagging a disclosure (set to 0 to disable silencing)"
-    axiom_disclosure_export_path: "Export path for disclosure logs (must be writable inside container)"
+    axiom_disclosure_enabled: "Enable Axiom disclosure flagging button"
+    axiom_disclosure_silence_duration_hours: "Silence duration (hours) after flagging a disclosure (0 disables silencing)"
+    axiom_disclosure_export_dir: "Directory for exported disclosure JSON files (server filesystem)"
+    axiom_disclosure_silence_reason: "Silencing reason recorded in Discourse admin logs"

@@ -3,14 +3,16 @@ plugins:
     default: false
     client: true
 
-  axiom_disclosure_export_path:
-    default: "/shared/private/axiom-disclosures"
-    type: string
-    client: false
-
   axiom_disclosure_silence_duration_hours:
     default: 24
     min: 0
     max: 720
     type: integer
-    client: false
+
+  axiom_disclosure_export_dir:
+    default: ""
+    type: text
+
+  axiom_disclosure_silence_reason:
+    default: "Axiom safeguarding action"
+    type: text

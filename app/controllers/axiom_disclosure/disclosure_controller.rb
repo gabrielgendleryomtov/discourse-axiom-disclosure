@@ -7,15 +7,21 @@ module ::AxiomDisclosure
     before_action :ensure_plugin_enabled
 
     def flag
-      Rails.logger.warn("[axiom-disclosure] HIT flag: post_id=#{params[:post_id]} actor=#{current_user&.id}")
-      
+      Rails.logger.warn("[axiom-disclosure] flag hit; post_id=#{params[:post_id]} user=#{current_user&.username}")
+
       post_id = params.require(:post_id).to_i
-      post = Post.find(post_id)
+      post = Post.find_by(id: post_id)
+      raise Discourse::NotFound unless post
 
       result = AxiomDisclosure::DisclosureService.flag_disclosure(post, current_user)
 
       render_json_dump(result.merge(ok: true))
+    rescue => e
+      Rails.logger.error("[axiom-disclosure] error in /flag: #{e.class}: #{e.message}")
+      Rails.logger.error(e.backtrace.join("\n")) if Rails.env.development?
+      raise
     end
+
 
     private
 

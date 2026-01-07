@@ -1,145 +1,160 @@
 # frozen_string_literal: true
 
-# require "fileutils"
-# require "json"
-
-# module ::AxiomDisclosure
-#   class DisclosureService
-#     EXPORT_DIR_DEFAULT = "/shared/private/axiom-disclosures"
-
-#     def self.flag_disclosure(actor:, post:)
-#       raise Discourse::InvalidAccess unless actor&.staff?
-#       raise ArgumentError, "post required" if post.blank?
-
-#       user = post.user
-#       raise ArgumentError, "post has no user" if user.blank?
-
-#       payload = build_payload(actor: actor, post: post, user: user)
-
-#       export_payload(payload)
-
-#       hide_post(post)
-#       silenced = silence_user(user, actor)
-#       notified = notify_external(payload)
-
-#       {
-#         ok: true,
-#         post_id: post.id,
-#         user_id: user.id,
-#         silenced: silenced,
-#         hidden: true,
-#         exported: true,
-#         notified: notified
-#       }
-#     end
-
-#     def self.build_payload(actor:, post:, user:)
-#       {
-#         event: "axiom_disclosure_flagged",
-#         timestamp_utc: Time.now.utc.iso8601,
-#         actor: {
-#           id: actor.id,
-#           username: actor.username
-#         },
-#         user: {
-#           id: user.id,
-#           username: user.username,
-#           email: user.email # optional; remove if you don’t want stored here
-#         },
-#         post: {
-#           id: post.id,
-#           topic_id: post.topic_id,
-#           post_number: post.post_number,
-#           url: post.full_url,
-#           raw: post.raw
-#         },
-#         topic: {
-#           id: post.topic.id,
-#           title: post.topic.title,
-#           url: post.topic.full_url
-#         },
-#         category: {
-#           id: post.topic.category_id,
-#           name: post.topic.category&.name
-#         }
-#       }
-#     end
-
-#     def self.export_payload(payload)
-#       dir = export_dir
-#       FileUtils.mkdir_p(dir)
-
-#       ts = Time.now.utc.strftime("%Y-%m-%dT%H-%M-%SZ")
-#       post_id = payload.dig(:post, :id) || "unknown"
-#       staff_id = payload.dig(:actor, :id) || "unknown"
-      
-#       file = File.join(dir, "disclosure_#{ts}_post_#{post_id}_staff_#{staff_id}.json")
-
-#       File.open(file, "w") do |f|
-#         f.write(JSON.pretty_generate(payload))
-#         f.write("\n")
-#       end
-
-#       Rails.logger.warn("[axiom-disclosure] exported disclosure to #{file}")
-#     end
-
-#     def self.hide_post(post)
-#       return if post.hidden?
-#       post.update!(hidden: true)
-#       Rails.logger.warn("[axiom-disclosure] hid post #{post.id}")
-#     end
-
-#     def self.silence_user(user, actor)
-#       hours = SiteSetting.axiom_disclosure_silence_duration_hours.to_i
-#       if hours <= 0
-#         Rails.logger.warn("[axiom-disclosure] silencing disabled by setting; user not silenced")
-#         return false
-#       end
-
-#       silenced_till = Time.zone.now + hours.hours
-
-#       # UserSilencer is core Discourse. Method names can vary slightly by version.
-#       # We implement with a conservative approach and fall back to direct update if needed.
-#       begin
-#         silencer = UserSilencer.new(user, actor)
-#         silencer.silence(
-#           reason: "Axiom safeguarding action",
-#           silenced_till: silenced_till
-#         )
-#       rescue NoMethodError
-#         # Fallback approach: set silenced_till directly (less ideal but works)
-#         user.update!(silenced_till: silenced_till)
-#       end
-
-#       Rails.logger.warn("[axiom-disclosure] silenced user #{user.username} until #{silenced_till}")
-#     end
-
-#     def self.notify_external(payload)
-#       # Stub for v0.1.0 — implement webhook/email/etc. later
-#       Rails.logger.warn("[axiom-disclosure] TODO notify_external called with payload post_id=#{payload.dig(:post, :id)} user=#{payload.dig(:user, :username)}")
-#       false
-#     end
-
-#     def self.export_dir
-#       raw = SiteSetting.axiom_disclosure_export_path.to_s.strip
-#       raw.present? ? raw : EXPORT_DIR_DEFAULT
-#     end
-#   end
-# end
-
-# frozen_string_literal: true
+require "json"
+require "fileutils"
 
 module ::AxiomDisclosure
   class DisclosureService
-    def self.flag_disclosure(post, actor)
-      {
-        post_id: post.id,
-        actor_id: actor.id,
-        silenced: false,
-        hidden: false,
-        exported: false,
-        notified: false
-      }
+    class << self
+      # Main entry point: called from controller
+      def flag_disclosure(post, actor)
+        raise Discourse::InvalidAccess, "staff only" unless actor&.staff?
+        raise ArgumentError, "post required" if post.blank?
+
+        user = post.user
+
+        payload = build_payload(post, user, actor)
+
+        hidden = hide_post(post, actor)
+        silenced = silence_user(user, actor)
+
+        exported_path = export_payload(payload)
+
+        notified = notify_external(payload)
+
+        {
+          post_id: post.id,
+          topic_id: post.topic_id,
+          user_id: user.id,
+          actor_id: actor.id,
+          hidden: hidden,
+          silenced: silenced,
+          export_path: exported_path,
+          notified: notified
+        }
+      end
+
+      # -----------------------------
+      # Payload and exporting
+      # -----------------------------
+
+      def build_payload(post, user, actor)
+        {
+          created_at: Time.zone.now.iso8601,
+          plugin: "axiom-disclosure",
+          actor: {
+            id: actor.id,
+            username: actor.username,
+            name: actor.name
+          },
+          user: {
+            id: user.id,
+            username: user.username,
+            name: user.name
+          },
+          post: {
+            id: post.id,
+            post_number: post.post_number,
+            topic_id: post.topic_id,
+            topic_title: post.topic&.title,
+            raw: post.raw,
+            cooked: post.cooked,
+            created_at: post.created_at&.iso8601,
+            url: post.full_url
+          }
+          # TODO (vNext): include staff observation text from confirm dialog
+        }
+      end
+
+      def export_payload(payload)
+        export_dir = SiteSetting.axiom_disclosure_export_dir.to_s.strip
+        export_dir = Rails.root.join("tmp", "axiom-disclosures").to_s if export_dir.blank?
+        FileUtils.mkdir_p(export_dir)
+
+        export_dir = "/var/discourse/shared/disclosures" if export_dir.blank?
+
+        FileUtils.mkdir_p(export_dir)
+
+        ts = Time.zone.now.strftime("%Y%m%d_%H%M%S")
+        user_id = payload.dig(:user, :id) || "unknown"
+        post_id = payload.dig(:post, :id) || "unknown"
+
+        filename = "disclosure_#{ts}_post_#{post_id}_user_#{user_id}.json"
+        path = File.join(export_dir, filename)
+
+        File.write(path, JSON.pretty_generate(payload))
+
+        path
+      rescue => e
+        Rails.logger.error("[axiom-disclosure] export failed: #{e.class}: #{e.message}")
+        raise
+      end
+
+      # -----------------------------
+      # Post hiding
+      # -----------------------------
+
+      def hide_post(post, actor)
+        return true if post.hidden?
+
+        reason = SiteSetting.axiom_disclosure_silence_reason.to_s
+
+        # Create a staff flag for audit/review purposes (does not guarantee hiding)
+        PostActionCreator.create(
+          actor,
+          post,
+          :inappropriate,
+          message: reason,
+          reason: reason,
+          context: "axiom-disclosure",
+          silent: true
+        )
+
+        # Explicitly hide the post (guaranteed)
+        hide_action_type_id = PostActionType.types[:inappropriate]
+        post.hide!(hide_action_type_id, reason)
+
+        post.reload.hidden?
+      rescue => e
+        Rails.logger.error("[axiom-disclosure] hide_post failed for post #{post.id}: #{e.class}: #{e.message}")
+        raise
+      end
+
+
+      # -----------------------------
+      # User silencing
+      # TODO (vNext): extend silenced_till with new flag
+      # -----------------------------
+
+      def silence_user(user, actor)
+        hours = SiteSetting.axiom_disclosure_silence_duration_hours.to_i
+        return false if hours <= 0
+
+        silenced_till = hours.hours.from_now
+        reason = SiteSetting.axiom_disclosure_silence_reason.to_s
+
+        UserSilencer.silence(
+          user,
+          actor,
+          { silenced_till: silenced_till, reason: reason }
+        )
+
+        true
+      rescue => e
+        Rails.logger.error("[axiom-disclosure] silence failed for user #{user.id}: #{e.class}: #{e.message}")
+        raise
+      end
+
+
+      # -----------------------------
+      # External notification (stub)
+      # -----------------------------
+
+      def notify_external(payload)
+        # Placeholder for integration (e.g. email, webhook, Slack, etc.)
+        # For v0.1.0 we intentionally do nothing and return false.
+        false
+      end
     end
   end
 end
