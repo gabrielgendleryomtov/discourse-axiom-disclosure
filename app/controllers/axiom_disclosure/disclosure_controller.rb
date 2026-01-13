@@ -38,12 +38,3 @@ module ::AxiomDisclosure
     end
   end
 end
-
-
-    #   Rails.logger.warn("[axiom-disclosure] flag hit; post_id=#{params[:post_id]} user=#{current_user&.username}")
-      
-    #   raise Discourse::NotFound unless post
-
-    # rescue => e
-    #   Rails.logger.error("[axiom-disclosure] error in /flag: #{e.class}: #{e.message}")
-    #   raise
