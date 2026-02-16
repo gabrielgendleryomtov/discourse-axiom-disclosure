@@ -147,8 +147,33 @@ module ::AxiomDisclosure
       # -----------------------------
 
       def notify_external(payload)
-        # Placeholder for integration (e.g. email, webhook, Slack, etc.)
-        # For v0.1.0 we intentionally do nothing and return false.
+        recipient = SiteSetting.axiom_disclosure_notification_email.to_s.strip
+        return false if recipient.blank?
+
+        post_id = payload.dig(:post, :id) || "unknown"
+        user_id = payload.dig(:user, :id) || "unknown"
+
+        subject = "Axiom disclosure report (post #{post_id}, user #{user_id})"
+        body = JSON.pretty_generate(payload)
+
+        message = ActionMailer::Base.mail(
+          to: recipient,
+          from: SiteSetting.notification_email,
+          subject: subject,
+          content_type: "text/plain; charset=UTF-8",
+          body: body
+        )
+
+        if defined?(::Email::Sender)
+          ::Email::Sender.new(message, :axiom_disclosure_notification).send
+        else
+          # Fallback for non-Discourse contexts/tests.
+          message.deliver_now
+        end
+
+        true
+      rescue => e
+        Rails.logger.error("[axiom-disclosure] notification failed: #{e.class}: #{e.message}")
         false
       end
     end

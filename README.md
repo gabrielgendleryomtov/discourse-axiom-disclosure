@@ -34,7 +34,8 @@ When enabled, staff users see a **shield** icon in the post menu. Clicking it:
 - **Export**
   - A JSON record is written to disk, one file per disclosure.
 - **External notification**
-  - A stub method is called (`notify_external(payload)`), returning `false` in v0.1.0.
+  - If `axiom_disclosure_notification_email` is set, the disclosure payload is emailed as JSON (`text/plain`) via Discourse's email pipeline.
+  - If blank, no email is sent.
 
 ---
 
@@ -83,6 +84,8 @@ Admin → Settings → Plugins → Axiom Disclosure
   - Leave blank to use fallback (`Rails.root/tmp/axiom-disclosures`)
 - **Silencing reason**
   - Generic text stored in staff-facing logs (should not contain sensitive details)
+- **Notification recipient email**
+  - Leave blank to disable disclosure report emails
 
 ---
 
