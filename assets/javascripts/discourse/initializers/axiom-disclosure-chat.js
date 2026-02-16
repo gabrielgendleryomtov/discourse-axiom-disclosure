@@ -1,3 +1,4 @@
+import { debug } from "@ember/debug";
 import { getOwner } from "@ember/owner";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
@@ -9,6 +10,7 @@ import { buildSuccessMessageHtml } from "../lib/axiom-disclosure-ui";
 
 const ACTION_ID = "axiomDisclosure";
 let patched = false;
+const LOG_PREFIX = "[axiom-disclosure] chat initializer:";
 
 function disclosureEnabledForInteractor(interactor) {
   return (
@@ -22,17 +24,23 @@ function disclosureEnabledForInteractor(interactor) {
 
 function patchChatMessageInteractor() {
   if (patched) {
+    debug(`${LOG_PREFIX} already patched, skipping`);
     return;
   }
+
+  debug(`${LOG_PREFIX} patching ChatMessageInteractor`);
 
   const secondaryActionsDescriptor = Object.getOwnPropertyDescriptor(
     ChatMessageInteractor.prototype,
     "secondaryActions"
   );
-  const originalHandleSecondaryActions =
-    ChatMessageInteractor.prototype.handleSecondaryActions;
 
-  if (!secondaryActionsDescriptor?.get || !originalHandleSecondaryActions) {
+  if (!secondaryActionsDescriptor?.get) {
+    debug(
+      `${LOG_PREFIX} missing descriptors; cannot patch getter=${Boolean(
+        secondaryActionsDescriptor?.get
+      )}`
+    );
     return;
   }
 
@@ -46,6 +54,10 @@ function patchChatMessageInteractor() {
         return actions;
       }
 
+      debug(
+        `${LOG_PREFIX} adding disclosure action messageId=${this?.message?.id} userId=${this?.currentUser?.id}`
+      );
+
       actions.push({
         id: ACTION_ID,
         name: i18n("axiom_disclosure.flag_title"),
@@ -56,47 +68,70 @@ function patchChatMessageInteractor() {
     },
   });
 
-  ChatMessageInteractor.prototype.handleSecondaryActions = async function (id) {
-    if (id === ACTION_ID) {
-      const response = await this.modal.show(AxiomDisclosureModal, {
-        confirmMessageKey: "axiom_disclosure.confirm_message_chat",
-      });
-      if (!response?.confirmed) {
-        return;
-      }
+  if (!ChatMessageInteractor.prototype[ACTION_ID]) {
+    Object.defineProperty(ChatMessageInteractor.prototype, ACTION_ID, {
+      configurable: true,
+      enumerable: false,
+      writable: true,
+      value: async function () {
+        debug(
+          `${LOG_PREFIX} disclosure action clicked messageId=${this?.message?.id} channelId=${this?.message?.channel?.id}`
+        );
 
-      const observation = response.observation || "";
-
-      try {
-        const result = await ajax("/axiom-disclosure/flag", {
-          type: "POST",
-          data: { chat_message_id: this.message.id, observation },
+        const response = await this.modal.show(AxiomDisclosureModal, {
+          confirmMessageKey: "axiom_disclosure.confirm_message_chat",
         });
-        const dialog = getOwner(this).lookup("service:dialog");
-        dialog.alert({
-          title: i18n("axiom_disclosure.success_title"),
-          message: buildSuccessMessageHtml(result),
-        });
-      } catch (e) {
-        popupAjaxError(e);
-      }
 
-      return;
-    }
+        debug(`${LOG_PREFIX} modal response confirmed=${response?.confirmed}`);
 
-    return originalHandleSecondaryActions.call(this, id);
-  };
+        if (!response?.confirmed) {
+          return;
+        }
+
+        const observation = response.observation || "";
+
+        try {
+          const result = await ajax("/axiom-disclosure/flag", {
+            type: "POST",
+            data: { chat_message_id: this.message.id, observation },
+          });
+
+          debug(
+            `${LOG_PREFIX} disclosure request success messageId=${this?.message?.id}`
+          );
+
+          const dialog = getOwner(this).lookup("service:dialog");
+          dialog.alert({
+            title: i18n("axiom_disclosure.success_title"),
+            message: buildSuccessMessageHtml(result),
+          });
+        } catch (e) {
+          debug(`${LOG_PREFIX} disclosure request failed`, e);
+          popupAjaxError(e);
+        }
+      },
+    });
+
+    debug(`${LOG_PREFIX} action method added`);
+  }
 
   patched = true;
+  debug(`${LOG_PREFIX} patch complete`);
 }
 
 export default {
   name: "axiom-disclosure-chat",
-  after: "chat-plugin-api",
 
   initialize() {
+    debug(`${LOG_PREFIX} initialize start`);
     withPluginApi(() => {
-      patchChatMessageInteractor();
+      try {
+        patchChatMessageInteractor();
+      } catch (e) {
+        debug(`${LOG_PREFIX} fatal error while patching`, e);
+        throw e;
+      }
     });
+    debug(`${LOG_PREFIX} initialize end`);
   },
 };

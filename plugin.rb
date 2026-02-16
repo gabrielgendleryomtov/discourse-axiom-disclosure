@@ -10,11 +10,14 @@ enabled_site_setting :axiom_disclosure_enabled
 
 require_relative "lib/axiom_disclosure/engine"
 require_relative "lib/axiom_disclosure/disclosure_service"
-
-load File.expand_path("../config/routes.rb", __FILE__)
+require_relative "config/routes"
 
 after_initialize do
+  Rails.logger.warn("[axiom-disclosure] plugin.rb after_initialize start")
+
   next unless SiteSetting.axiom_disclosure_enabled
+
+  Rails.logger.warn("[axiom-disclosure] plugin.rb enabled, preparing export directory")
 
   dir = SiteSetting.axiom_disclosure_export_dir.to_s.strip
   if dir.present?
@@ -22,7 +25,11 @@ after_initialize do
       FileUtils.mkdir_p(dir)
       Rails.logger.warn("[axiom-disclosure] ensured export dir exists: #{dir}")
     rescue => e
-      Rails.logger.error("[axiom-disclosure] could not create export dir #{dir}: #{e.class}: #{e.message}")
+      Rails.logger.error(
+        "[axiom-disclosure] could not create export dir #{dir}: #{e.class}: #{e.message}",
+      )
     end
   end
+
+  Rails.logger.warn("[axiom-disclosure] plugin.rb after_initialize end")
 end
