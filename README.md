@@ -4,10 +4,10 @@ A Discourse plugin for staff to record safeguarding disclosures with a single cl
 
 This plugin adds a staff-only disclosure button in the post menu and chat message menu. When clicked and confirmed, the plugin:
 
-- Hides the post immediately
-- Silences the post author for a configurable duration (optional)
+- Hides the selected content immediately (post or chat message)
+- Silences the content author for a configurable duration (optional)
 - Exports a JSON record to the server filesystem (outside the database)
-- Triggers an external notification hook (stubbed in v0.1.0)
+- Sends an optional email notification via Discourse's mail pipeline
 
 This is designed for safeguarding workflows where you want an immutable record of an incident even if the user deletes their account.
 
@@ -19,21 +19,20 @@ This is designed for safeguarding workflows where you want an immutable record o
 
 When enabled, staff users see a **shield** disclosure action in post menus and chat message menus. Clicking it:
 
-1. Opens a confirmation dialog (“Flag this post as a disclosure?”).
+1. Opens a confirmation dialog (“Flag this content as a disclosure?”).
 2. On confirmation, performs safeguarding actions server-side.
 
 ### Server-side actions (v0.1.0)
 
-- **Flag + hide**
-  - A staff flag is created (for audit trail / moderation UI).
-  - The post is explicitly hidden immediately.
+- **Hide**
+  - For posts: the post is hidden immediately.
+  - For chat messages: the chat message is trashed (hidden from chat stream).
 - **Silence**
-  - The post author is silenced for `axiom_disclosure_silence_duration_hours`.
+  - The content author is silenced for `axiom_disclosure_silence_duration_hours`.
   - If the value is `0`, no silencing is performed.
-  - Note: if a user is already silenced, v0.1.0 does not extend the silence duration (planned improvement).
 - **Export**
   - A JSON record is written to disk, one file per disclosure.
-- **External notification**
+- **Email notification**
   - If `axiom_disclosure_notification_email` is set, the disclosure payload is emailed as JSON (`text/plain`) via Discourse's email pipeline.
   - If blank, no email is sent.
 
@@ -45,8 +44,7 @@ Each disclosure produces a single JSON file containing:
 
 - Staff actor details
 - User details
-- Post raw + cooked text
-- Topic metadata
+- Post details (`post`) or chat message details (`chat_message`) depending on source
 - Timestamps
 
 The JSON is written outside the database so the record remains available even if the user deletes content or their account.
