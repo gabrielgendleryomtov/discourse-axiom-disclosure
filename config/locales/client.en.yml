@@ -8,6 +8,7 @@ en:
       observation_placeholder: "Write any relevant observation here (e.g. context, why you flagged it, immediate next steps)."
 
       confirm_message: "Flag this post as a disclosure? This will hide the post and may temporarily restrict the user’s posting, depending on safeguarding settings."
+      confirm_message_chat: "Flag this message as a disclosure? This will hide the message and may temporarily restrict the user’s posting, depending on safeguarding settings."
 
       error_title: "Disclosure failed"
       error_message: "Something went wrong while recording the disclosure. Please check server logs."
@@ -15,8 +16,8 @@ en:
       success_title: "Disclosure recorded"
       success_message_intro: "The disclosure has been recorded. Actions taken:"
 
-      action_post_hidden: "Post hidden"
-      action_post_already_hidden: "Post was already hidden (no change)"
+      action_post_hidden: "Content hidden"
+      action_post_already_hidden: "Content was already hidden (no change)"
 
       action_user_silenced: "User silenced temporarily"
       action_user_not_silenced: "User not silenced"

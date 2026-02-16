@@ -2,7 +2,7 @@
 
 A Discourse plugin for staff to record safeguarding disclosures with a single click.
 
-This plugin adds a staff-only post menu button (“Disclosure”). When clicked and confirmed, the plugin:
+This plugin adds a staff-only disclosure button in the post menu and chat message menu. When clicked and confirmed, the plugin:
 
 - Hides the post immediately
 - Silences the post author for a configurable duration (optional)
@@ -15,9 +15,9 @@ This is designed for safeguarding workflows where you want an immutable record o
 
 ## Behaviour
 
-### Staff post menu button
+### Staff post and chat message menu button
 
-When enabled, staff users see a **shield** icon in the post menu. Clicking it:
+When enabled, staff users see a **shield** disclosure action in post menus and chat message menus. Clicking it:
 
 1. Opens a confirmation dialog (“Flag this post as a disclosure?”).
 2. On confirmation, performs safeguarding actions server-side.
