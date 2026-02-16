@@ -16,3 +16,7 @@ plugins:
   axiom_disclosure_silence_reason:
     default: "Axiom safeguarding action"
     type: text
+
+  axiom_disclosure_notification_email:
+    default: ""
+    type: text
