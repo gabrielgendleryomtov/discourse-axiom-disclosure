@@ -20,3 +20,7 @@ plugins:
   axiom_disclosure_notification_email:
     default: ""
     type: text
+
+  axiom_disclosure_notify_user:
+    default: false
+    type: bool

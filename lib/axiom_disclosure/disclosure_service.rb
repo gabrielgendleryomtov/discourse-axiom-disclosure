@@ -143,12 +143,12 @@ module ::AxiomDisclosure
         )
         return false if post.hidden?
 
-        reason = SiteSetting.axiom_disclosure_silence_reason.to_s
-
-        # Explicitly hide the post (guaranteed)
-        hide_action_type_id = PostActionType.types[:inappropriate]
-
-        post.hide!(hide_action_type_id, reason)
+        if SiteSetting.axiom_disclosure_notify_user
+          hide_action_type_id = PostActionType.types[:inappropriate]
+          post.hide!(hide_action_type_id)
+        else
+          hide_post_without_user_notification(post)
+        end
 
         post.reload.hidden?
       rescue => e
@@ -156,6 +156,42 @@ module ::AxiomDisclosure
           "[axiom-disclosure] hide_post failed for post #{post.id}: #{e.class}: #{e.message}",
         )
         raise
+      end
+
+      def hide_post_without_user_notification(post)
+        should_reset_bumped_at = post.is_last_reply? && !post.whisper?
+
+        Post.transaction do
+          post.skip_validation = true
+          should_update_user_stat = true
+
+          reason_id =
+            if post.hidden_at
+              Post.hidden_reasons[:flag_threshold_reached_again]
+            else
+              Post.hidden_reasons[:flag_threshold_reached]
+            end
+
+          post.update!(hidden: true, hidden_at: Time.zone.now, hidden_reason_id: reason_id)
+
+          any_visible_posts_in_topic =
+            Post.exists?(topic_id: post.topic_id, hidden: false, post_type: Post.types[:regular])
+
+          if post.is_first_post? || !any_visible_posts_in_topic
+            post.topic.update_status(
+              "visible",
+              false,
+              Discourse.system_user,
+              { visibility_reason_id: Topic.visibility_reasons[:op_flag_threshold_reached] },
+            )
+            should_update_user_stat = false
+          end
+
+          # Keep user stats and topic counts aligned with core hide! behavior.
+          UserStatCountUpdater.decrement!(post) if should_update_user_stat
+        end
+
+        post.topic.reset_bumped_at if should_reset_bumped_at
       end
 
       def hide_chat_message(chat_message, actor)

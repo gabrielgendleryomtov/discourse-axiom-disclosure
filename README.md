@@ -84,6 +84,9 @@ Admin → Settings → Plugins → Axiom Disclosure
   - Generic text stored in staff-facing logs (should not contain sensitive details)
 - **Notification recipient email**
   - Leave blank to disable disclosure report emails
+- **Notify user about hidden content**
+  - Disabled by default.
+  - When disabled, disclosure hides post content without sending the standard Discourse hidden-post system message/email to the author.
 
 ---
 

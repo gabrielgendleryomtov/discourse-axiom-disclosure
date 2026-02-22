@@ -5,3 +5,4 @@ en:
     axiom_disclosure_export_dir: "Directory for exported disclosure JSON files (server filesystem)"
     axiom_disclosure_silence_reason: "Silencing reason recorded in Discourse admin logs"
     axiom_disclosure_notification_email: "Notification recipient email address for disclosure reports (blank disables email notifications)"
+    axiom_disclosure_notify_user: "Send standard Discourse hidden-content notification to the content author for disclosure actions"
