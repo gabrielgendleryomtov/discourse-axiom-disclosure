@@ -35,6 +35,9 @@ When enabled, staff users see a **shield** disclosure action in post menus and c
 - **Email notification**
   - If `axiom_disclosure_notification_email` is set, the disclosure payload is emailed as JSON (`text/plain`) via Discourse's email pipeline.
   - If blank, no email is sent.
+- **Optional redaction**
+  - When enabled, after export/notification the plugin replaces post/chat content with redacted text.
+  - Original content remains available in revision history for authorized staff.
 
 ---
 
@@ -87,6 +90,11 @@ Admin → Settings → Plugins → Axiom Disclosure
 - **Notify user about hidden content**
   - Disabled by default.
   - When disabled, disclosure hides post content without sending the standard Discourse hidden-post system message/email to the author.
+- **Redact disclosed content after reporting**
+  - Enabled by default.
+  - Runs after JSON export and optional email notification.
+- **Redacted content text**
+  - Replacement text written into post/chat content when redaction runs.
 
 ---
 

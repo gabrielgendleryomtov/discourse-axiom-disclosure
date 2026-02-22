@@ -35,6 +35,7 @@ module ::AxiomDisclosure
         exported_path = export_payload(payload)
 
         notified = notify_external(payload)
+        redacted = redact_record(record, actor)
 
         result_ids.merge(
           actor_id: actor.id,
@@ -42,6 +43,7 @@ module ::AxiomDisclosure
           silenced: silenced,
           export_path: exported_path,
           notified: notified,
+          redacted: redacted,
         )
       end
 
@@ -214,6 +216,70 @@ module ::AxiomDisclosure
         end
 
         false
+      end
+
+      def redact_record(record, actor)
+        return false unless SiteSetting.axiom_disclosure_redact_content
+
+        if record.is_a?(Post)
+          redact_post(record, actor)
+        elsif defined?(::Chat::Message) && record.is_a?(::Chat::Message)
+          redact_chat_message(record, actor)
+        else
+          false
+        end
+      rescue => e
+        Rails.logger.error("[axiom-disclosure] redaction failed: #{e.class}: #{e.message}")
+        false
+      end
+
+      def redacted_text
+        text = SiteSetting.axiom_disclosure_redacted_content_text.to_s
+        text = "[Content removed by safeguarding team]" if text.blank?
+        text
+      end
+
+      def redact_post(post, actor)
+        replacement = redacted_text
+        return false if post.raw.to_s.strip == replacement.strip
+
+        post.revise(
+          actor,
+          { raw: replacement, edit_reason: "Axiom disclosure redaction" },
+          { force_new_version: true, bypass_rate_limiter: true, bypass_bump: true, silent: true },
+        )
+      end
+
+      def redact_chat_message(chat_message, actor)
+        replacement = redacted_text
+        message = ::Chat::Message.with_deleted.find_by(id: chat_message.id)
+        return false if message.blank?
+
+        original_message = message.message.to_s
+        return false if original_message.strip == replacement.strip
+
+        cooked = ::Chat::Message.cook(replacement, user_id: actor.id)
+        excerpt = PrettyText.excerpt(cooked, ::Chat::Message::EXCERPT_LENGTH, strip_links: true)
+        now = Time.zone.now
+
+        ::Chat::Message.transaction do
+          message.update_columns(
+            message: replacement,
+            cooked: cooked,
+            cooked_version: ::Chat::Message::BAKED_VERSION,
+            excerpt: excerpt,
+            last_editor_id: actor.id,
+            updated_at: now,
+          )
+
+          message.revisions.create!(
+            old_message: original_message,
+            new_message: replacement,
+            user_id: actor.id,
+          )
+        end
+
+        true
       end
 
       # -----------------------------

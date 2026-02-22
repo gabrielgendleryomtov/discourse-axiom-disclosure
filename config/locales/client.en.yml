@@ -27,6 +27,8 @@ en:
 
       action_notified: "External notification sent"
       action_not_notified: "External notification not sent"
+      action_redacted: "Disclosure redacted for moderators"
+      action_not_redacted: "Warning: disclosure redaction failed"
 
       confirm_button: "Confirm and record disclosure"
       cancel_button: "Cancel"

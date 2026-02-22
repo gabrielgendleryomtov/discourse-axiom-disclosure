@@ -24,3 +24,11 @@ plugins:
   axiom_disclosure_notify_user:
     default: false
     type: bool
+
+  axiom_disclosure_redact_content:
+    default: true
+    type: bool
+
+  axiom_disclosure_redacted_content_text:
+    default: "[Content removed by safeguarding team]"
+    type: text

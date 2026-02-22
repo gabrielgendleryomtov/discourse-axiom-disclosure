@@ -48,6 +48,12 @@ export function buildSuccessMessageHtml(result) {
       : i18n("axiom_disclosure.action_not_notified")
   );
 
+  items.push(
+    result.redacted
+      ? i18n("axiom_disclosure.action_redacted")
+      : i18n("axiom_disclosure.action_not_redacted")
+  );
+
   const intro = escapeHtml(i18n("axiom_disclosure.success_message_intro"));
 
   const html = `
